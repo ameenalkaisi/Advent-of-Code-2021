@@ -13,10 +13,6 @@ struct pair_num {
     virtual int get_value() {return -1;}
 };
 
-// someway or another keep track of all regular numbers and depth 4 pairs
-// gotta do memory allocation as well
-// todo
-
 struct reg_num : public pair_num {
     int value;
 
@@ -199,6 +195,26 @@ bool pair_reduce(pair_num *num, real_pair *parent = nullptr, bool is_left = true
     return false;
 }
 
+pair_num *copy_pair(pair_num *other) {
+    real_pair *real = dynamic_cast<real_pair*>(other);
+    if(real)
+        return new real_pair{copy_pair(real->left), copy_pair(real->right)};
+
+    reg_num *reg = dynamic_cast<reg_num*>(other);
+    if(reg) {
+        return new reg_num{reg->value};
+    }
+
+    return nullptr;
+}
+
+int get_sum(pair_num *a, pair_num *b) {
+    pair_num *result = copy_pair(add(a, b));
+    while(explode(result) || pair_reduce(result));
+
+    return result->get_value();
+}
+
 int main(int argc, char **argv) {
     ifstream input{argv[1]};
     if(!input)
@@ -208,21 +224,19 @@ int main(int argc, char **argv) {
     for(string line; getline(input, line);)
         nums.push_back(read_pair(line));
 
-    /*pair_num *result = reduce(nums.begin() + 1, nums.end(), *nums.begin(), [](auto a, auto b) {
-        print_pair_num(a);
-        cout << endl;
-        print_pair_num(b);
-        return add(a, b);
-    });*/
+    int largest = 0;
 
-    pair_num *result = nums[0];
-    // add and reduce each number afterwards
-    for(int i = 1; i < nums.size(); ++i) {
-        result = add(result, nums[i]);
+    // go through every possible additon find largest and save it
+    for(int i = 0; i < nums.size(); ++i) {
+        for(int j = 0; j < nums.size(); ++j) {
+            if(i == j)
+                continue;
 
-        while(explode(result) || pair_reduce(result));
+            int result = get_sum(nums[i], nums[j]);
+            if(result > largest)
+                largest = result;
+        }
     }
 
-    print_pair_num(result);
-    cout << endl << result->get_value() << endl;
+    cout << largest << endl;
 }
